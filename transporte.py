@@ -76,6 +76,55 @@ def ra(CT:np.array, T:float , P:float):
 
     return r_a*1000 #kmol/(m³ s) -> mol/(m³ s)
 
+def init_estimativa(N_z:int, N_r:int, Cin:float, Tin:float, Tout:float, R:float, X:float):
+    #criando os arrays
+    """
+    Inicializa os arrays de concentração e temperatura com estimativas iniciais.
+    
+    Parameters
+    ----------
+    N_z : int
+        Número de espaços na direção axial.
+    N_r : int
+        Número de espaços na direção radial.
+    Cin : float
+        Concentração de entrada [mol/m³].
+    Tin : float
+        Temperatura de entrada [K].
+    Tout : float
+        Estimativa da temperatura de saída [K].
+    R : float
+        Raio do reator [m].
+    X : float
+        Estimativa da conversão [adimensional]
+
+    Returns
+    -------
+    C_init : array_like
+        Array (N_z+1, N_r+1) com a estimativa de concentração inicial.
+    T_init : array_like
+        Array (N_z+1, N_r+1) com a estimativa de temperatura inicial.
+    """
+    # Cria matrizes para as estimativas iniciais
+    C_init = np.zeros((N_z + 1, N_r + 1))  # Concentração (mol/m³)
+    T_init = np.zeros((N_z + 1, N_r + 1))  # Temperatura (K)
+
+    # Grade radial
+    r_grid = np.linspace(0, R, N_r + 1)
+
+    # Inicializa a concentração com um gradiente linear na direção axial baseado na conversão
+    for i in range(N_z + 1):  # Loop nos pontos axiais
+        X_axial = 1 - X * (i / N_z)  # Gradiente linear na direção axial
+        C_init[i, :] = Cin * X_axial
+
+    # Inicializa a temperatura com gradiente linear nas direções axial e radial
+    for i in range(N_z + 1):  # Loop nos pontos axiais
+        T_axial = Tin - (Tin - Tout) * (i / N_z)  # Interpolação linear na direção axial
+        for j in range(N_r + 1):  # Loop nos pontos radiais
+            T_init[i, j] = T_axial - (T_axial - 0.95*T_axial) * (r_grid[j] / R)  # Interpolação radial estimando que a parede tem 95% da temperatura do centro
+
+    return C_init, T_init
+
 if __name__ == "__main__":
     print(f"Der = {Der(2.5, 2, 1.5):.3e}")
     Re = Re_leito(0.3, 2.5, 0.4, 1.5, 40e-6)
