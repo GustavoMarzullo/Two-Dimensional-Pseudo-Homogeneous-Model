@@ -14,7 +14,7 @@ def Re_leito(ρ:float, us:float, ε:float, dp:float, μ:float):
     dp = dp*1e-3 #mm -> m
     return (ρ*us*ε*dp)/μ
 
-def λer(T:float, λg:float, λs:float ,dp:float, ε:float, dt:float, Re:float):
+def λer(T:float, λg:float, λs:float ,dp:float, ε:float, R:float, Re:float):
     """Calcula a condutividade térmica efetiva em um leito empacotado
     Argumentos:   
         T (float): temperatura do fluido [K]  
@@ -22,12 +22,13 @@ def λer(T:float, λg:float, λs:float ,dp:float, ε:float, dt:float, Re:float):
         λs (float): condutividade térmica do leito [W/mK]
         dp (float): diâmetro médio das partículas do leito [mm]
         ε (float): porosidade do leito [adimensional]
-        dt (float): diâmetro do reator [m]
+        R (float): raio do reator [m]
         Re (float): número de Reynolds do leito [adimensional]
     Retorna:
         float: condutividade térmica efetiva [W/mK]"""
     
     dp = dp*1e-3 #mm -> m
+    dt = R*2 #m
     p = 0.95 #emissividade do sólido
     β = 0.95 #"a coefficient that depends on the particle geometry and the packing density, comprised between 0.9 and 1.0" (Froment)
     γ = 2/3
@@ -121,7 +122,7 @@ def init_estimativa(N_z:int, N_r:int, Cin:float, Tin:float, Tout:float, R:float,
     for i in range(N_z + 1):  # Loop nos pontos axiais
         T_axial = Tin - (Tin - Tout) * (i / N_z)  # Interpolação linear na direção axial
         for j in range(N_r + 1):  # Loop nos pontos radiais
-            T_init[i, j] = T_axial - (T_axial - 0.95*T_axial) * (r_grid[j] / R)  # Interpolação radial estimando que a parede tem 95% da temperatura do centro
+            T_init[i, j] = T_axial - (T_axial - 1*T_axial) * (r_grid[j] / R)  # Interpolação radial estimando que a parede tem 95% da temperatura do centro
 
     return C_init, T_init
 
