@@ -122,7 +122,7 @@ def init_estimativa(N_z:int, N_r:int, Cin:float, Tin:float, Tout:float, R:float,
     for i in range(N_z + 1):  # Loop nos pontos axiais
         T_axial = Tin - (Tin - Tout) * (i / N_z)  # Interpolação linear na direção axial
         for j in range(N_r + 1):  # Loop nos pontos radiais
-            T_init[i, j] = T_axial - (T_axial - 1*T_axial) * (r_grid[j] / R)  # Interpolação radial estimando que a parede tem 95% da temperatura do centro
+            T_init[i, j] = T_axial - (T_axial - 0.9*T_axial) * (r_grid[j] / R)  # Interpolação radial estimando que a parede tem 95% da temperatura do centro
 
     return C_init, T_init
 

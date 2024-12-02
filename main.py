@@ -1,6 +1,7 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.optimize import root
-from transporte import Re_leito, λer, Der, ra, init_estimativa
+from auxiliares import Re_leito, λer, Der, ra, init_estimativa
 
 """
 Os vetores de concentração (C) e temperatura (T) são matrizes bidimensionais organizadas da seguinte forma:
@@ -35,8 +36,8 @@ Tw = 65 + 273.15 #K, parede do trocador
 Pin = 1 #atm
 
 #características do leito
-ε = 0.5
-dp = 4 #mm
+ε = 0.4
+dp = 5 #mm
 Ac = 7 #m²
 
 #propriedades físico-químicas do fluido e da reação (fonte: aspen)
@@ -55,13 +56,13 @@ v = Qin/Ac #m³/s -> m/s
 us = v*ε #velocidade superficial do gás
 
 #discretização do reator na direção axial
-L = 10 #comprimento do reator
+L = 10 #comprimento do reator, m
 N_z = 5 #número de espaços na direção axial
 Δz = L/N_z #step size
 Z_eval = np.linspace(0, L, N_z+1)
 
 #discretização do reator na direção radial
-R = np.sqrt(Ac/np.pi) #m
+R = np.sqrt(Ac/np.pi) #raio do reator,m
 N_r = 5 #número de espaços na direção radial
 Δr = R/N_r #step size
 R_eval = np.linspace(0, R, N_r+1)
@@ -107,7 +108,7 @@ def fobj(vars):
         C_res[z, N_r] = C[z, N_r] - C[z, N_r-1] #C.C. 4
         T_res[z, 0] = T[z, 1] - T[z, 0] #C.C. 5
         T_med = (T[z, N_r] + T[z, N_r-1])/2
-        T_res[z, N_r] = (T[z, N_r] - T[z, N_r-1])/Δr - αw/λer(T_med, λg, λs, dp, ε, R, Re)*(Tr-Tw)/100 #C.C. 6
+        T_res[z, N_r] = (T[z, N_r] - T[z, N_r-1])/Δr - αw/λer(T_med, λg, λs, dp, ε, R, Re)*(Tr-Tw)/10 #C.C. 6
     
     
     res = np.concatenate([C_res.flatten(), T_res.flatten()])
@@ -136,6 +137,21 @@ if residuo < 1e-3:
     pprint(C_res)
     print("Temperatura (ºC):")
     pprint(T_res)
+
+    ##PRINTANDO
+    
+    # Criando os grids X e Y com as mesmas dimensões de C
+    X, Y = np.meshgrid(R_eval, Z_eval)  # Usando np.meshgrid para criar as malhas
+
+    # Corrigir a correspondência das dimensões para plotar
+    from  matplotlib.colors import LinearSegmentedColormap
+    cmap=LinearSegmentedColormap.from_list('rg',["darkgreen", "w", "r"], N=256) 
+    plt.contourf(X, Y, T_res, levels=20, cmap=cmap)  # Usando 'viridis' como colormap
+    plt.colorbar(label="Tempeatura (ºC)")
+    plt.title("Distribuição de Temperatura no Reator")
+    plt.ylabel("Comprimento (z) [m]")
+    plt.xlabel("Raio (r) [m]")
+    plt.show()
     
 
    
