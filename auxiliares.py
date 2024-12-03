@@ -85,9 +85,9 @@ def init_estimativa(N_z:int, N_r:int, Cin:float, Tin:float, Tout:float, R:float,
     Parameters
     ----------
     N_z : int
-        Número de espaços na direção axial.
+        Número de pontos na direção axial.
     N_r : int
-        Número de espaços na direção radial.
+        Número de pontos na direção radial.
     Cin : float
         Concentração de entrada [mol/m³].
     Tin : float
@@ -102,26 +102,26 @@ def init_estimativa(N_z:int, N_r:int, Cin:float, Tin:float, Tout:float, R:float,
     Returns
     -------
     C_init : array_like
-        Array (N_z+1, N_r+1) com a estimativa de concentração inicial.
+        Array (N_z, N_r) com a estimativa de concentração inicial.
     T_init : array_like
-        Array (N_z+1, N_r+1) com a estimativa de temperatura inicial.
+        Array (N_z, N_r) com a estimativa de temperatura inicial.
     """
     # Cria matrizes para as estimativas iniciais
-    C_init = np.zeros((N_z + 1, N_r + 1))  # Concentração (mol/m³)
-    T_init = np.zeros((N_z + 1, N_r + 1))  # Temperatura (K)
+    C_init = np.zeros((N_z, N_r))  # Concentração (mol/m³)
+    T_init = np.zeros((N_z, N_r))  # Temperatura (K)
 
     # Grade radial
-    r_grid = np.linspace(0, R, N_r + 1)
+    r_grid = np.linspace(0, R, N_r)
 
     # Inicializa a concentração com um gradiente linear na direção axial baseado na conversão
-    for i in range(N_z + 1):  # Loop nos pontos axiais
+    for i in range(N_z):  # Loop nos pontos axiais
         X_axial = 1 - X * (i / N_z)  # Gradiente linear na direção axial
         C_init[i, :] = Cin * X_axial
 
     # Inicializa a temperatura com gradiente linear nas direções axial e radial
-    for i in range(N_z + 1):  # Loop nos pontos axiais
+    for i in range(N_z):  # Loop nos pontos axiais
         T_axial = Tin - (Tin - Tout) * (i / N_z)  # Interpolação linear na direção axial
-        for j in range(N_r + 1):  # Loop nos pontos radiais
+        for j in range(N_r):  # Loop nos pontos radiais
             T_init[i, j] = T_axial - (T_axial - 0.9*T_axial) * (r_grid[j] / R)  # Interpolação radial estimando que a parede tem 95% da temperatura do centro
 
     return C_init, T_init
