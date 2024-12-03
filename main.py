@@ -1,5 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from  matplotlib.colors import LinearSegmentedColormap
+from matplotlib import cm
+from mpl_toolkits.mplot3d import axes3d
 from scipy.optimize import root
 from auxiliares import Re_leito, λer, Der, ra, init_estimativa
 
@@ -27,18 +30,18 @@ def pprint(X):
      print('\n'.join(['\t'.join([str(cell) for cell in row]) for row in X]))
 
 #vazão de entrada (acetona pura)
-Fin = 500 #mol/s
+Fin = 100 #mol/s
 
 #temperatura de entrada
 Tin = 750 + 273.15 #K, entrada
 Tr = 25 + 273.15 #K, ambiente
-Tw = 65 + 273.15 #K, parede do trocador
+Tw = 65 + 273.15 #K, parede do reator
 Pin = 1 #atm
 
 #características do leito
-ε = 0.4
+ε = 0.3
 dp = 5 #mm
-Ac = 7 #m²
+Ac = 2 #m²
 
 #propriedades físico-químicas do fluido e da reação (fonte: aspen)
 Cp = 2500 #J/(kg.K)
@@ -48,7 +51,8 @@ M = 58e-3 #kg/mol
 λg = 0.09 #W/m.K
 λs = 170 #W/m.K 
 μg = 2.6e-05 #Pa.s
-αw = 0.156e3 #J/(m².s.K)
+
+αw = 50 #J/(m².s.K)
 
 Qin = Fin*M/ρG #m³/s
 Cin = Fin/Qin
@@ -56,14 +60,14 @@ v = Qin/Ac #m³/s -> m/s
 us = v*ε #velocidade superficial do gás
 
 #discretização do reator na direção axial
-L = 10 #comprimento do reator, m
-N_z = 5 #número de espaços na direção axial
+L = 1 #comprimento do reator, m
+N_z = 10 #número de espaços na direção axial
 Δz = L/N_z #step size
 Z_eval = np.linspace(0, L, N_z+1)
 
 #discretização do reator na direção radial
 R = np.sqrt(Ac/np.pi) #raio do reator,m
-N_r = 5 #número de espaços na direção radial
+N_r = 10 #número de espaços na direção radial
 Δr = R/N_r #step size
 R_eval = np.linspace(0, R, N_r+1)
 
@@ -108,19 +112,16 @@ def fobj(vars):
         C_res[z, N_r] = C[z, N_r] - C[z, N_r-1] #C.C. 4
         T_res[z, 0] = T[z, 1] - T[z, 0] #C.C. 5
         T_med = (T[z, N_r] + T[z, N_r-1])/2
-        T_res[z, N_r] = (T[z, N_r] - T[z, N_r-1])/Δr - αw/λer(T_med, λg, λs, dp, ε, R, Re)*(Tr-Tw)/10 #C.C. 6
-    
+        T_res[z, N_r] = (T[z, N_r] - T[z, N_r-1])/Δr - αw/λer(T_med, λg, λs, dp, ε, R, Re)*(Tr-Tw) #C.C. 6
     
     res = np.concatenate([C_res.flatten(), T_res.flatten()])
 
     return res
 
 #criando as estimativas iniciais
-X_est = 0.4
-Tout_est = Tin-100
+X_est = 0.2
+Tout_est = Tin-200
 C_init, T_init = init_estimativa(N_z, N_r, Cin, Tin, Tout_est, R, X_est)
-pprint(C_init)
-pprint(T_init)
 estimativa = np.concatenate([C_init.flatten(), T_init.flatten()])
 
 #resolvendo o problema
@@ -131,28 +132,32 @@ residuo = np.linalg.norm(fobj(resultado))
 print(f"\n Resíduo:{residuo:.3g}")
 
 if residuo < 1e-3:
-    C_res = resultado[:(N_z + 1) * (N_r + 1)].reshape((N_z + 1, N_r + 1)) #concentração
-    T_res = resultado[(N_z + 1) * (N_r + 1):].reshape((N_z + 1, N_r + 1))-273.15  #temperatura
-    print("Concentração (mol/m³):")
-    pprint(C_res)
-    print("Temperatura (ºC):")
-    pprint(T_res)
+  C_res = resultado[:(N_z + 1) * (N_r + 1)].reshape((N_z + 1, N_r + 1)) #concentração
+  T_res = resultado[(N_z + 1) * (N_r + 1):].reshape((N_z + 1, N_r + 1))-273.15  #temperatura
+  print("Concentração (mol/m³):")
+  pprint(C_res)
+  print("Temperatura (ºC):")
+  pprint(T_res)
 
-    ##PRINTANDO
-    
-    # Criando os grids X e Y com as mesmas dimensões de C
-    X, Y = np.meshgrid(R_eval, Z_eval)  # Usando np.meshgrid para criar as malhas
+  ##PRINTANDO
+  
+  X, Y = np.meshgrid(R_eval, Z_eval)  # Usando np.meshgrid para criar as malhas
 
-    # Corrigir a correspondência das dimensões para plotar
-    from  matplotlib.colors import LinearSegmentedColormap
-    cmap=LinearSegmentedColormap.from_list('rg',["darkgreen", "w", "r"], N=256) 
-    plt.contourf(X, Y, T_res, levels=20, cmap=cmap)  # Usando 'viridis' como colormap
-    plt.colorbar(label="Tempeatura (ºC)")
-    plt.title("Distribuição de Temperatura no Reator")
-    plt.ylabel("Comprimento (z) [m]")
-    plt.xlabel("Raio (r) [m]")
-    plt.show()
-    
+  plt.pcolormesh(X, Y, T_res, cmap='seismic', shading='gouraud')
+  plt.colorbar(label="Tempeatura (ºC)")
+  plt.title("Distribuição de Temperatura no Reator")
+  plt.ylabel("Comprimento (z) [m]")
+  plt.xlabel("Raio (r) [m]")
+  plt.savefig("Temperatura.pdf")
+  plt.show()
+
+  plt.pcolormesh(X, Y, C_res, cmap='seismic', shading='gouraud')
+  plt.colorbar(label="Concentração (mol/m³)")
+  plt.title("Distribuição de Concentração no Reator")
+  plt.ylabel("Comprimento (z) [m]")
+  plt.xlabel("Raio (r) [m]")
+  plt.savefig("Concentração.pdf")
+  plt.show() 
 
    
     
