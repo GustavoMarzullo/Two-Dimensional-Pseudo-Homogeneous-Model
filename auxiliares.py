@@ -39,7 +39,6 @@ def λer(T:float, λg:float, λs:float ,dp:float, ε:float, R:float, Re:float):
 
     return λer0 + 0.0025/(1+46*(dp/dt)**2)*Re
 
-
 def Der(us:float, dp:float, dt:float):
     """Calcula a difusividade do fluido em um leito empacotado
     Argumentos:   
