@@ -49,7 +49,7 @@ M = 58e-3 #kg/mol
 λs = 3 #W/m.K 
 μg = 2.6e-05 #Pa.s
 
-αw = 250 #J/(m².s.K)
+αw = 50 #J/(m².s.K)
 
 Qin = Fin*M/ρG #m³/s
 Cin = Fin/Qin
@@ -57,7 +57,7 @@ v = Qin/Ac #m³/s -> m/s
 us = v*ε #velocidade superficial do gás
 
 #discretização do reator na direção axial
-L = 5 #comprimento do reator, m
+L = 10 #comprimento do reator, m
 N_z = 31  # Número de pontos na direção axial (inclui entrada e saída)
 Δz = L/(N_z - 1)  # Step size entre pontos
 Z_eval = np.linspace(0, L, N_z)
@@ -94,7 +94,7 @@ def fobj(vars):
 
           C_res[z, r] = ε * _Der * (1 / (2 * Δr**2) * (C[z+1, r+1] - 2 * C[z+1, r] + C[z+1, r-1] + C[z, r+1] - 2 * C[z, r] + C[z, r-1]) + 1 / R_eval[r] * 1 / (4 * Δr) * (C[z+1, r+1] - C[z+1, r-1] + C[z, r+1] - C[z, r-1])) - us * (C[z, r] - C[z-1, r]) / Δz - _ra
 
-          T_res[z, r] = _λder * (1 / (2 * Δr**2) * (T[z+1, r+1] - 2 * T[z+1, r] + T[z+1, r-1] + T[z, r+1] - 2 * T[z, r] + T[z, r-1]) + 1 / R_eval[r] * 1 / (4 * Δr) * (T[z+1, r+1] - T[z+1, r-1] + T[z, r+1] - T[z, r-1])) - us * ρG * Cp * (T[z+1, r] - T[z-1, r]) / (2 * Δz) + _ra * (-ΔHr)
+          T_res[z, r] = _λder * (1 / (2 * Δr**2) * (T[z+1, r+1] - 2 * T[z+1, r] + T[z+1, r-1] + T[z, r+1] - 2 * T[z, r] + T[z, r-1]) + 1 / R_eval[r] * 1 / (4 * Δr) * (T[z+1, r+1] - T[z+1, r-1] + T[z, r+1] - T[z, r-1])) - us * ρG * Cp * (T[z, r] - T[z-1, r]) / Δz + _ra * (-ΔHr)
 
     for r in range(1, N_r-1):
         z = N_z-1
@@ -111,18 +111,18 @@ def fobj(vars):
         C_res[0,r] = C[0,r] - Cin #C.C. 1
         T_res[0,r] = T[0,r] - Tin #C.C. 2
     for z in range(1, N_z):
-        C_res[z,0] = C[z,2] - 2*C[z,1] + C[z,0] #C.C. 3
-        C_res[z, -1] = C[z, -1] - 2*C[z, -2] + C[z, -3]  #C.C. 4
-        T_res[z, 0] = T[z, 0] - 2*T[z, 1] + T[z, 2] #C.C. 5
-        T_res[z, -1] = (T[z, -1] - 2*T[z, -2] + T[z, -3])/(Δr**2) - αw/λer(T[z, -1], λg, λs, dp, ε, R, Re)*(Tr-Tw) #C.C. 6
+        C_res[z,0] = -3*C[z,0] + 4*C[z,1] - C[z,2] #C.C. 3
+        C_res[z, -1] = 3*C[z, -1] - 4*C[z, -2] + C[z, -3]  #C.C. 4
+        T_res[z, 0] = -3*T[z,0] + 4*T[z,1] - T[z,2] #C.C. 5
+        T_res[z, -1] = (3*T[z, -1] - 4*T[z, -2] + T[z, -3])/(2*Δr) - αw/λer(T[z, -1], λg, λs, dp, ε, R, Re)*(Tr-Tw) #C.C. 6
     
     res = np.concatenate([C_res.flatten(), T_res.flatten()])
 
     return res
 
 #criando as estimativas iniciais
-X_est = 0.15
-Tout_est = Tin-200
+X_est = 0.2
+Tout_est = Tin-150
 C_init, T_init = init_estimativa(N_z, N_r, Cin, Tin, Tout_est, R, X_est)
 estimativa = np.concatenate([C_init.flatten(), T_init.flatten()])
 
