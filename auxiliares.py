@@ -1,4 +1,4 @@
-import numpy as np 
+import autograd.numpy as np
 
 def Re_leito(ρ:float, us:float, ε:float, dp:float, μ:float):
     """Calcula o número de Reynolds em um leito empacotado

@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import root
 from auxiliares import Re_leito, λer, Der, ra, init_estimativa
+from sklearn.preprocessing import normalize
+
 
 """
 Os vetores de concentração (C) e temperatura (T) são matrizes bidimensionais organizadas da seguinte forma:
@@ -101,10 +103,9 @@ def fobj(vars):
         CT = np.array([C[z, r], C_cetena[z, r], C_metano[z, r]])
         _ra = ra(CT, T[z, r], Pin)
         _λder = λer(T[z, r], λg, λs, dp, ε, R, Re)
-        C_res[z, r] = ε * _Der * (1 / Δr * (C[z, r] - C[z, r-1]) + 1 / R_eval[r] * 1 / Δr * (C[z, r] - C[z, r-1])) - us * (C[z, r] - C[z-1, r]) / Δz - _ra
+        C_res[z, r] = ε * _Der * (1 / Δr**2 * (C[z, r] - 2*C[z, r-1] + C[z, r-2]) + 1 / R_eval[r] * 1 / Δr * (C[z, r] - C[z, r-1])) - us * (C[z, r] - C[z-1, r]) / Δz - _ra
 
-        T_res[z, r] = _λder * (1 / Δr * (T[z, r] - T[z, r-1]) + 1 / R_eval[r] * 1 / Δr * (T[z, r] - T[z, r-1])) - us * ρG * Cp * (T[z, r] - T[z-1, r]) / Δz + _ra * (-ΔHr)
-
+        T_res[z, r] = _λder * (1 / Δr**2 * (T[z, r] - 2*T[z, r-1] + T[z, r-2]) + 1 / R_eval[r] * 1 / Δr * (T[z, r] - T[z, r-1])) - us * ρG * Cp * (T[z, r] - T[z-1, r]) / Δz + _ra * (-ΔHr)
 
     #condições de contorno
     for r in range(0, N_r):
@@ -156,18 +157,6 @@ if residuo < 1e-3:
   plt.savefig("Temperatura.pdf")
   plt.show()
 
-# 3D Surface Plot
-  """ fig = plt.figure(figsize=(12, 6))
-
-  ax = fig.add_subplot(121, projection='3d')
-  surf = ax.plot_surface(X, Y, T_res, cmap='seismic')
-  ax.set_xlabel("Raio (r) [m]")
-  ax.set_ylabel("Comprimento (z) [m]")
-  ax.set_zlabel("Temperatura (ºC)")
-  ax.set_title("Distribuição de Temperatura no Reator")
-  fig.colorbar(surf, ax=ax)
-  plt.show() """
-
   #plt.pcolormesh(X, Y, C_res, cmap='seismic', shading='gouraud')
   plt.contourf(X, Y, C_res, cmap='seismic', levels=20)
   plt.colorbar(label="Concentração (mol/m³)")
@@ -175,7 +164,25 @@ if residuo < 1e-3:
   plt.ylabel("Comprimento (z) [m]") 
   plt.xlabel("Raio (r) [m]")
   plt.savefig("Concentração.pdf")
-  plt.show() 
+  plt.show()
+
+  ### CHAT GPT
+  import pandas as pd
+  # Create DataFrames for the results
+  C_res_df = pd.DataFrame(C_res, columns=[f"R{i+1}" for i in range(N_r)])
+  T_res_df = pd.DataFrame(T_res, columns=[f"R{i+1}" for i in range(N_r)])
+
+  # Create a DataFrame for metadata
+  metadata_df = pd.DataFrame({'Parameter': ['N_r', 'N_z'], 'Value': [N_r, N_z]})
+
+  # Save everything into a single Excel file with separate sheets
+  output_file = "results_with_metadata.xlsx"
+  with pd.ExcelWriter(output_file) as writer:
+      metadata_df.to_excel(writer, sheet_name='Metadata', index=False)
+      C_res_df.to_excel(writer, sheet_name='Concentration', index=False)
+      T_res_df.to_excel(writer, sheet_name='Temperature', index=False)
+
+  print(f"Results and metadata saved to {output_file}")
 
    
     
